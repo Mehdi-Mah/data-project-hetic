@@ -1,0 +1,55 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main  # Trigger le workflow sur des push vers la branche `main`
+  pull_request:
+    branches:
+      - main  # Trigger sur des pull requests vers `main`
+  workflow_dispatch:  # Permet d'exécuter manuellement le workflow depuis GitHub Actions UI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: SplinterCrown@2024
+          POSTGRES_DB: data_hetic
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+    # Étape 1: Vérifier le code source
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Étape 2: Installer Node.js et dépendances
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'  # Spécifiez la version Node.js
+    - name: Install dependencies
+      run: npm install
+
+    # Étape 3: Exécuter les tests
+    - name: Run tests
+      run: npm run test  # Remplacez par la commande de test de votre projet
+
+    # Étape 4: Build Docker et Next.js
+    - name: Build Next.js app
+      run: npm run build
+
+    # Étape 5: Exécuter des tests de connexion à la base de données
+    - name: Test database connection
+      run: |
+        echo "SELECT NOW();" | PGPASSWORD=SplinterCrown@2024 psql -h localhost -U postgres -d data_hetic
